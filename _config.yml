@@ -72,5 +72,5 @@ theme: landscape
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repository: https://github.com/caijinlin/caijinlin.github.com.git
+  repository: git@github.com:caijinlin/hexo.git
   branch: master
