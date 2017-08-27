@@ -1,0 +1,95 @@
+---
+title: laravel启动过程浅析
+date: 2017-03-18 08:00:00
+tags: [laravel]
+---
+
+在tp项目中引入了Laravel下的很多组件，分析了一下laravel的启动过程：
+
+### 创建引用程序 - bootstrap.php
+```php
+use App\Illuminate\Foundation\Application;
+
+#### 初始化服务容器
+
+$app = new Application(realpath(__DIR__ . '/../'));
+
+#### 绑定重要接口与实现
+
+// 单例一个App\Http\Kernel对象，可以使用App::make('Illuminate\Contracts\Http\Kernel')调用
+$app->singleton(
+    'Illuminate\Contracts\Http\Kernel',
+    'App\Http\Kernel'
+);
+
+// 单例一个App\Console\Kernel对象，可以使用App::make('Illuminate\Contracts\Console\Kernel')调用
+$app->singleton(
+    'Illuminate\Contracts\Console\Kernel',
+    'App\Console\Kernel'
+);
+// 单例一个App\Exceptions\Handler对象，可以使用App::make('Illuminate\Contracts\Debug\ExceptionHandler')调用
+$app->singleton(
+    'Illuminate\Contracts\Debug\ExceptionHandler',
+    'App\Exceptions\Handler'
+);
+
+#### 返回一个初始化完成的服务容器
+
+return $app;
+```
+
+### 注册基本绑定 - App\Illuminate\Foundation\Application.php
+```php
+$this->registerBaseBindings(); // 初始化最简单的容器
+
+$this->registerBaseServiceProviders(); // 在容器中注册最基本的服务提供者（即ServiceProvider）
+
+$this->registerCoreContainerAliases(); // 在容器中注册一些核心类的别名
+
+if ($basePath) {
+    $this->setBasePath($basePath); // 在容器中注册一些常用的文档绝对路径
+}
+```
+
+### 启动Http/Kernel
+
+继承自Illuminate\Foundation\Http\Kernel
+
+```php
+// 项目的一些启动引导项
+protected $bootstrappers = [
+    // 检测环境变量文件是否正常
+    'Illuminate\Foundation\Bootstrap\DetectEnvironment',
+    // 取得配置文件，即把/config/下的所有配置文件读取到容器（app()->make('config')可以查看所有配置信息）
+    'Illuminate\Foundation\Bootstrap\LoadConfiguration',
+    // 绑定一个名字为log的实例到容器，怎么访问？？（app()->make('log')）
+    'Illuminate\Foundation\Bootstrap\ConfigureLogging',
+    // 设置异常抓取信息
+    'Illuminate\Foundation\Bootstrap\HandleExceptions',
+    // 把/config/app.php里面的aliases项利用PHP库函数class_alias创建别名，从此，我们可以使用App::make('app')方式取得实例
+    'Illuminate\Foundation\Bootstrap\RegisterFacades',
+    // 把/config/app.php里面的providers项,注册到容器
+    'Illuminate\Foundation\Bootstrap\RegisterProviders',
+    // 运行容器中注册的所有的ServiceProvider中得boot方法
+    'Illuminate\Foundation\Bootstrap\BootProviders',
+];
+```
+
+
+### 启动Console/Kernel
+
+```php
+protected $bootstrappers = [
+    'Illuminate\Foundation\Bootstrap\DetectEnvironment',
+    'Illuminate\Foundation\Bootstrap\LoadConfiguration',
+    'Illuminate\Foundation\Bootstrap\ConfigureLogging',
+    'Illuminate\Foundation\Bootstrap\HandleExceptions',
+    'Illuminate\Foundation\Bootstrap\RegisterFacades',
+    'Illuminate\Foundation\Bootstrap\SetRequestForConsole',
+    'Illuminate\Foundation\Bootstrap\RegisterProviders',
+    'Illuminate\Foundation\Bootstrap\BootProviders',
+];
+```
+
+
+
